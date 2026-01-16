@@ -1,6 +1,5 @@
 import pandas as pd
-from src.model_loader import predictor  
-
+from model_loader import predictor
 def test_model_file_exists():
     """Vérifie que le modèle est chargé."""
     assert predictor.model is not None
