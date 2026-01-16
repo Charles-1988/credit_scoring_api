@@ -1,11 +1,16 @@
 from fastapi import FastAPI
 import pandas as pd
+from pathlib import Path
 from src.model_loader import predictor
 
 app = FastAPI(title="Credit Scoring API")
 
-# Charger les 5 clients dès le démarrage
-clients_df = pd.read_csv("5_clients.csv", index_col=0)
+# Base path du projet
+BASE_DIR = Path(__file__).parent
+
+# Charger le fichier des 5 clients depuis le dossier data
+clients_file = BASE_DIR / "data" / "five_clients.csv"
+clients_df = pd.read_csv(clients_file, index_col=0)
 
 @app.get("/")
 def read_root():
@@ -26,4 +31,5 @@ def predict(data: dict):
         return {"proba": float(proba), "classe": int(classe)}
     except Exception as e:
         return {"error": str(e)}
+
 
