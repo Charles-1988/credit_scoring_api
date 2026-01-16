@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import pandas as pd
-from model_loader import predictor
+from src.model_loader import predictor
 
 app = FastAPI(title="Credit Scoring API")
 
