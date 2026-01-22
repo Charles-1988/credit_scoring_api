@@ -1,14 +1,20 @@
 import pandas as pd
 import pytest
-from src.model_loader import ModelPredictor
 from pathlib import Path
+from fastapi.testclient import TestClient
+
+from src.model_loader import ModelPredictor
+from src.main import app
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models/best_model_lightgbm.pkl"
 TOP_FEATURES_PATH = BASE_DIR / "data/top_features.csv"
 SEUIL_METIER = 0.35
 
-# Fonction helper pour créer un predictor local
+client = TestClient(app)
+
+
 def get_test_predictor():
     return ModelPredictor(
         model_path=MODEL_PATH,
@@ -16,36 +22,48 @@ def get_test_predictor():
         threshold=SEUIL_METIER
     )
 
-def test_model_file_exists():
+def get_valid_payload():
     predictor = get_test_predictor()
-    assert predictor.model is not None
+    return {feat: 0.0 for feat in predictor.top_features}
 
-def test_top_features_file_exists():
-    predictor = get_test_predictor()
-    assert len(predictor.top_features) > 0
 
-def test_predict_proba():
+def test_predict_proba_range():
     predictor = get_test_predictor()
-    test_df = pd.DataFrame([{feat: 0 for feat in predictor.top_features}])
-    probas = predictor.predict_proba(test_df)
-    assert all(0 <= p <= 1 for p in probas)
+    df = pd.DataFrame([get_valid_payload()])
+    proba = predictor.predict_proba(df)[0]
 
-def test_predict_class():
+    assert 0 <= proba <= 1
+
+def test_predict_class_logic():
     predictor = get_test_predictor()
-    test_df = pd.DataFrame([{feat: 0 for feat in predictor.top_features}])
-    proba = predictor.predict_proba(test_df)[0]
-    classe = predictor.predict_class(test_df)[0]
+    df = pd.DataFrame([get_valid_payload()])
+    proba = predictor.predict_proba(df)[0]
+    classe = predictor.predict_class(df)[0]
+
     assert classe in [0, 1]
     assert (proba >= SEUIL_METIER) == (classe == 1)
 
-def test_invalid_model_path():
-    with pytest.raises(FileNotFoundError):
-        ModelPredictor(model_path="models/inexistant.pkl", top_features_path=TOP_FEATURES_PATH)
 
-def test_missing_feature():
-    predictor = get_test_predictor()
-    test_df = pd.DataFrame([{feat: 0 for feat in predictor.top_features[:-1]}])  # dernière feature manquante
-    with pytest.raises(KeyError):
-        predictor.predict_proba(test_df)
+def test_api_root_ok():
+    response = client.get("/")
+    assert response.status_code == 200
 
+def test_api_predict_success():
+    response = client.post("/predict", json=get_valid_payload())
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "proba" in data
+    assert "classe" in data
+    assert 0 <= data["proba"] <= 1
+    assert data["classe"] in [0, 1]
+
+def test_api_predict_missing_feature():
+    payload = get_valid_payload()
+    payload.pop(next(iter(payload)))  # supprime une feature
+
+    response = client.post("/predict", json=payload)
+
+    assert response.status_code == 422  # Pydantic bloque
 

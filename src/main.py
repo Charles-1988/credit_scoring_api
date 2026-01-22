@@ -4,9 +4,6 @@ import pandas as pd
 from pathlib import Path
 from src.model_loader import ModelPredictor
 
-# -----------------------------
-# Configuration et chemins
-# -----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models/best_model_lightgbm.pkl"
 TOP_FEATURES_PATH = BASE_DIR / "data/top_features.csv"

@@ -5,9 +5,9 @@ import requests
 API_URL = "https://credit-scoring-api-tqja.onrender.com/predict"
 API_CLIENTS_URL = "https://credit-scoring-api-tqja.onrender.com/clients"
 
-
 st.title("Credit Scoring")
 
+# Charger les clients
 try:
     response = requests.get(API_CLIENTS_URL)
     response.raise_for_status()
@@ -16,16 +16,14 @@ except Exception as e:
     st.error(f"Erreur lors de la récupération des clients : {e}")
     st.stop()
 
-
-st.subheader("Sélection du client")
+# Sélection du client
 client_id = st.selectbox("Choisir un client :", clients_df.index.tolist())
 client_data = clients_df.loc[client_id]
 
+# Création des colonnes pour bouton et résultat
+col1, col2 = st.columns([1, 1])
 
-predict_button = st.button("Prédire")
-
-
-st.subheader("Données du client")
+# Préparer le formulaire
 inputs = {}
 for col in clients_df.columns:
     val = client_data[col]
@@ -35,22 +33,30 @@ for col in clients_df.columns:
         val = 0.0
     inputs[col] = st.number_input(col, value=val)
 
+# Bouton de prédiction en haut à gauche
+with col1:
+    predict_button = st.button("Prédire")
+
+# Résultat en haut à droite
+result_container = col2.empty()
 
 if predict_button:
     try:
         res = requests.post(API_URL, json=inputs).json()
         if "error" in res:
-            st.error(f"Erreur API : {res['error']}")
+            result_container.error(f"Erreur API : {res['error']}")
         else:
-            proba = res["proba"]
             classe = res["classe"]
-            st.write(f"Probabilité de défaut : {proba:.2f}")
             if classe == 1:
-                st.error("Crédit refusé")
+                result_container.error("Crédit refusé ❌")
             else:
-                st.success("Crédit accordé")
+                result_container.success("Crédit accordé ✅")
     except Exception as e:
-        st.error(f"Erreur lors de l'appel API : {e}")
+        result_container.error(f"Erreur lors de l'appel API : {e}")
+
+
+
+
 
 
 
