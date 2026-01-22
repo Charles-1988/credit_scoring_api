@@ -31,5 +31,7 @@ jobs:
 
       - name: Run tests
         run: |
-          export PYTHONPATH=src
-          pytest tests/test_model.py -v --disable-warnings --maxfail=1
+          # Ajouter la racine du projet au PYTHONPATH
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          # Lancer pytest via python pour éviter les problèmes de chemins
+          python -m pytest tests/ -v --disable-warnings --maxfail=1
