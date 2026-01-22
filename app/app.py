@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import requests
 
-API_URL = "https://credit-scoring-api-1-ovnd.onrender.com/predict"
-API_CLIENTS_URL = "https://credit-scoring-api-1-ovnd.onrender.com/clients"
+API_URL = "https://credit-scoring-api-tqja.onrender.com/predict"
+API_CLIENTS_URL = "https://credit-scoring-api-tqja.onrender.com/clients"
+
 
 st.title("Credit Scoring")
 
