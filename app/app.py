@@ -48,9 +48,9 @@ if predict_button:
         else:
             classe = res["classe"]
             if classe == 1:
-                result_container.error("Crédit refusé ❌")
+                result_container.error("Crédit refusé ")
             else:
-                result_container.success("Crédit accordé ✅")
+                result_container.success("Crédit accordé ")
     except Exception as e:
         result_container.error(f"Erreur lors de l'appel API : {e}")
 
