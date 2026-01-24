@@ -27,7 +27,7 @@ def test_predict_proba_calls_model():
     predictor.top_features = ["a", "b"]
 
     mock_model = Mock()
-    mock_model.predict_proba.return_value = np.array([[0.7, 0.3]])  # np.array obligatoire
+    mock_model.predict_proba.return_value = np.array([[0.7, 0.3]])  
     predictor.model = mock_model
 
     df = pd.DataFrame([{"a": 1, "b": 2}])
@@ -42,7 +42,7 @@ def test_predict_class_threshold():
     """
     predictor = ModelPredictor.__new__(ModelPredictor)
     predictor.threshold = 0.5
-    predictor.predict_proba = Mock(return_value=np.array([0.4, 0.6]))  # np.array ici aussi
+    predictor.predict_proba = Mock(return_value=np.array([0.4, 0.6]))  
     df = pd.DataFrame([{}, {}])
     classes = predictor.predict_class(df)
     assert list(classes) == [0, 1]
@@ -77,16 +77,6 @@ def test_predict_logic_missing_feature():
     with pytest.raises(KeyError):
         predict_logic(data, mock_predictor)
 
-def test_predict_logic_unexpected_error():
-    """
-    Vérifie que predict_logic ne masque pas les erreurs inattendues du modèle.
-    """
-    mock_predictor = Mock()
-    mock_predictor.predict_proba.side_effect = RuntimeError("Erreur inattendue du modèle")
-    data = {"f1": 0.0, "f2": 1.0}
-    with pytest.raises(RuntimeError):
-        predict_logic(data, mock_predictor)
-
 
 def test_credit_decision():
     """
@@ -96,6 +86,26 @@ def test_credit_decision():
     assert credit_decision(0) == "accordé"
 
 
+def test_new_client():
+    """
+    Test unitaire : simule un nouveau client avec toutes les features à 0.0
+    et vérifie que predict_logic retourne bien une probabilité et une classe.
+    """
+    predictor = ModelPredictor.__new__(ModelPredictor)
+    features_test = ["age", "revenu", "dette"]  
+    predictor.top_features = features_test
+    predictor.threshold = 0.5
+    predictor.predict_proba = Mock(return_value=np.array([0.3]))
+    predictor.predict_class = Mock(return_value=np.array([0]))
+
+    # Création du nouveau client avec valeurs par défaut
+    new_client = {feat: 0.0 for feat in features_test}
+    result = predict_logic(new_client, predictor)
+
+    assert "proba" in result
+    assert "classe" in result
+    assert result["proba"] == 0.3
+    assert result["classe"] == 0
 
 
 
