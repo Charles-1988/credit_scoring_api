@@ -1,13 +1,17 @@
 import pytest
 import pandas as pd
+import numpy as np
 from unittest.mock import Mock
 from pathlib import Path
 from src.model_loader import ModelPredictor
 from src.main import predict_logic, credit_decision
 
-# Tests ModelPredictor
+
+
 def test_predict_proba_missing_feature():
-    "vérifie si une feature obligatoire est absente"
+    """
+    Vérifie que predict_proba lève une KeyError si une feature obligatoire est absente.
+    """
     predictor = ModelPredictor.__new__(ModelPredictor)
     predictor.top_features = ["a", "b"]
     predictor.model = Mock()
@@ -16,44 +20,57 @@ def test_predict_proba_missing_feature():
         predictor.predict_proba(df)
 
 def test_predict_proba_calls_model():
-    "on vérifie que le modéle retourne la bonne probabilité"
+    """
+    Vérifie que predict_proba appelle le modèle et retourne la bonne probabilité.
+    """
     predictor = ModelPredictor.__new__(ModelPredictor)
     predictor.top_features = ["a", "b"]
+
     mock_model = Mock()
-    mock_model.predict_proba.return_value = [[0.7, 0.3]]
+    mock_model.predict_proba.return_value = np.array([[0.7, 0.3]])  # np.array obligatoire
     predictor.model = mock_model
+
     df = pd.DataFrame([{"a": 1, "b": 2}])
     proba = predictor.predict_proba(df)
+
     assert proba[0] == 0.3
     mock_model.predict_proba.assert_called_once()
 
 def test_predict_class_threshold():
-    "vérifie que predict class convertit bien les probabiltés en 0/1"
+    """
+    Vérifie que predict_class convertit correctement les probabilités en 0 ou 1 selon le seuil.
+    """
     predictor = ModelPredictor.__new__(ModelPredictor)
     predictor.threshold = 0.5
-    predictor.predict_proba = Mock(return_value=pd.Series([0.4, 0.6]))
+    predictor.predict_proba = Mock(return_value=np.array([0.4, 0.6]))  # np.array ici aussi
     df = pd.DataFrame([{}, {}])
     classes = predictor.predict_class(df)
     assert list(classes) == [0, 1]
 
 def test_invalid_model_path():
-    "vérifie si le fichier du modéle n'existe pas "
+    """
+    Vérifie qu'un chemin de modèle invalide lève bien un FileNotFoundError.
+    """
     with pytest.raises(FileNotFoundError):
         ModelPredictor(model_path=Path("chemin/inexistant.pkl"))
 
-# Tests logique API
+
 def test_predict_logic_ok():
-    "vérifue que predict proba retourne la proba et la classe  "
+    """
+    Vérifie que predict_logic retourne la probabilité et la classe correctement pour un jeu de données valide.
+    """
     mock_predictor = Mock()
-    mock_predictor.predict_proba.return_value = [0.2]
-    mock_predictor.predict_class.return_value = [1]
+    mock_predictor.predict_proba.return_value = np.array([0.2])
+    mock_predictor.predict_class.return_value = np.array([1])
     data = {"f1": 0.0, "f2": 1.0}
     result = predict_logic(data, mock_predictor)
     assert result["proba"] == 0.2
     assert result["classe"] == 1
 
 def test_predict_logic_missing_feature():
-    "vérifie que "
+    """
+    Vérifie que predict_logic lève une KeyError si une feature est manquante.
+    """
     mock_predictor = Mock()
     mock_predictor.predict_proba.side_effect = KeyError("Feature manquante")
     data = {"f1": 0.0}
@@ -61,16 +78,23 @@ def test_predict_logic_missing_feature():
         predict_logic(data, mock_predictor)
 
 def test_predict_logic_unexpected_error():
+    """
+    Vérifie que predict_logic ne masque pas les erreurs inattendues du modèle.
+    """
     mock_predictor = Mock()
     mock_predictor.predict_proba.side_effect = RuntimeError("Erreur inattendue du modèle")
     data = {"f1": 0.0, "f2": 1.0}
     with pytest.raises(RuntimeError):
         predict_logic(data, mock_predictor)
 
-# Test credit_decision
+
 def test_credit_decision():
+    """
+    Vérifie que credit_decision retourne 'refusé' pour 1 et 'accordé' pour 0.
+    """
     assert credit_decision(1) == "refusé"
     assert credit_decision(0) == "accordé"
+
 
 
 
