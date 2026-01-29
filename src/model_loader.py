@@ -13,7 +13,7 @@ class ModelPredictor:
         self.model = joblib.load(model_path)
         self.top_features = pd.read_csv(features_path)["feature"].tolist()
         self.threshold = threshold
-        self.explainer = None  
+        self.explainer = None
 
     def _prepare(self, X: pd.DataFrame) -> pd.DataFrame:
         missing = set(self.top_features) - set(X.columns)
@@ -30,16 +30,24 @@ class ModelPredictor:
 
     def get_shap_values(self, X: pd.DataFrame) -> np.ndarray:
         X_prepared = self._prepare(X)
-
         if self.explainer is None:
             model_to_explain = self.model
-            if hasattr(self.model, 'named_steps'):
+            if hasattr(self.model, 'named_steps') and 'clf' in self.model.named_steps:
                 model_to_explain = self.model.named_steps['clf']
             self.explainer = shap.TreeExplainer(model_to_explain)
-
         shap_values = self.explainer.shap_values(X_prepared)
         if isinstance(shap_values, list):
-            shap_values = shap_values[1]  
-
+            shap_values = shap_values[1]
         return shap_values
+
+
+def predict_logic(client_data: dict, predictor: ModelPredictor) -> dict:
+    df = pd.DataFrame([client_data])
+    proba = predictor.predict_proba(df)[0]
+    classe = predictor.predict_class(df)[0]
+    return {"proba": float(proba), "classe": int(classe)}
+
+def credit_decision(classe: int) -> str:
+    return "refusé" if classe == 1 else "accordé"
+
 
