@@ -13,9 +13,7 @@ class ModelPredictor:
         self.model = joblib.load(model_path)
         self.top_features = pd.read_csv(features_path)["feature"].tolist()
         self.threshold = threshold
-
-    
-        self.explainer = shap.TreeExplainer(self.model)
+        self.explainer = None  
 
     def _prepare(self, X: pd.DataFrame) -> pd.DataFrame:
         missing = set(self.top_features) - set(X.columns)
@@ -31,14 +29,17 @@ class ModelPredictor:
         return (self.predict_proba(X) >= self.threshold).astype(int)
 
     def get_shap_values(self, X: pd.DataFrame) -> np.ndarray:
-        """
-        Retourne les SHAP values de la classe positive (1)
-        pour les top_features uniquement.
-        """
         X_prepared = self._prepare(X)
-        shap_values = self.explainer.shap_values(X_prepared)
 
+        if self.explainer is None:
+            model_to_explain = self.model
+            if hasattr(self.model, 'named_steps'):
+                model_to_explain = self.model.named_steps['clf']
+            self.explainer = shap.TreeExplainer(model_to_explain)
+
+        shap_values = self.explainer.shap_values(X_prepared)
         if isinstance(shap_values, list):
-            shap_values = shap_values[1]
+            shap_values = shap_values[1]  
 
         return shap_values
+
